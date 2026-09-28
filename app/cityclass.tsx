@@ -660,7 +660,7 @@ async function analyze() {
 
     const timeout = setTimeout(() => {
       controller.abort();
-    }, 30000);
+    }, 60000);
 
     try {
       const base64 = image.split(",")[1];
@@ -741,7 +741,7 @@ async function analyze() {
 
       if (attempt < maxAttempts) {
         await new Promise((resolve) =>
-          setTimeout(resolve, attempt * 1500)
+          setTimeout(resolve, Math.min(3000 * 2 ** (attempt - 1), 10000))
         );
 
         continue;
@@ -1357,6 +1357,7 @@ async function analyze() {
   {image && (
     <button
       onClick={analyze}
+      disabled={loading || !image}
       className="flex items-center justify-center gap-2 rounded-2xl bg-[#10231c] px-5 py-4 font-bold text-white transition hover:-translate-y-1 hover:opacity-90 active:scale-[0.98] sm:col-span-2"
     >
       ✨ Generate Information
