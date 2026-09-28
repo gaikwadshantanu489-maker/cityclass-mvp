@@ -754,6 +754,7 @@ async function analyze() {
       return;
     } finally {
       clearTimeout(timeout);
+       setLoading(false);
     }
   }
 
