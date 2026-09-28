@@ -32,7 +32,9 @@ const schema = {
     "funFact", "learningLevel", "microChallenge"
   ]
 };
-
+async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 export async function POST(req: Request) {
   try {
     const key = process.env.GEMINI_API_KEY;
@@ -46,8 +48,12 @@ export async function POST(req: Request) {
     if (!body?.image || !body?.mimeType) return NextResponse.json({ error: "Image data is required." }, { status: 400 });
 
     const ai = new GoogleGenAI({ apiKey: key });
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+    let response;
+
+for (let attempt = 1; attempt <= 3; attempt++) {
+  try {
+    response = await ai.models.generateContent({
+      model: "gemini-3.5-flash-lite",
       contents: [{
         role: "user",
         parts: [
@@ -79,6 +85,38 @@ Return ONLY the requested structured JSON.` }
         responseSchema: schema
       }
     });
+  
+    break;
+  } catch (error) {
+    const status = Number(
+      (error as any)?.status ?? (error as any)?.code
+    );
+
+    const message = String(
+      (error as any)?.message ?? ""
+    );
+
+    const retryable =
+      status === 429 ||
+      status === 500 ||
+      status === 502 ||
+      status === 503 ||
+      status === 504 ||
+      message.includes("503") ||
+      message.includes("UNAVAILABLE");
+
+    if (!retryable || attempt === 3) {
+      throw error;
+    }
+
+    await sleep(2000 * 2 ** (attempt - 1));
+  }
+}
+
+if (!response) {
+  throw new Error("Gemini did not return a response.");
+}
+
 
     const raw = response.text;
     if (!raw) throw new Error("Gemini returned an empty response.");
